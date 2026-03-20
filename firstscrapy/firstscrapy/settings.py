@@ -19,10 +19,13 @@ ADDONS = {}
 #USER_AGENT = "firstscrapy (+http://www.yourdomain.com)"
 
 # Obey robots.txt rules
-ROBOTSTXT_OBEY = True
+#ROBOTSTXT_OBEY = True
+
+ROBOTSTXT_OBEY = False
 
 # Concurrency and throttling settings
 #CONCURRENT_REQUESTS = 16
+CONCURRENT_REQUESTS = 6
 CONCURRENT_REQUESTS_PER_DOMAIN = 1
 DOWNLOAD_DELAY = 1
 
@@ -58,9 +61,9 @@ DOWNLOAD_DELAY = 1
 
 # Configure item pipelines
 # See https://docs.scrapy.org/en/latest/topics/item-pipeline.html
-#ITEM_PIPELINES = {
-#    "firstscrapy.pipelines.FirstscrapyPipeline": 300,
-#}
+ITEM_PIPELINES = {
+    "firstscrapy.pipelines.FirstscrapyPipeline": 300,
+}
 
 # Enable and configure the AutoThrottle extension (disabled by default)
 # See https://docs.scrapy.org/en/latest/topics/autothrottle.html
@@ -74,7 +77,10 @@ DOWNLOAD_DELAY = 1
 #AUTOTHROTTLE_TARGET_CONCURRENCY = 1.0
 # Enable showing throttling stats for every response received:
 #AUTOTHROTTLE_DEBUG = False
-
+AUTOTHROTTLE_ENABLED = True
+AUTOTHROTTLE_START_DELAY = 2
+AUTOTHROTTLE_MAX_DELAY = 10
+AUTOTHROTTLE_TARGET_CONCURRENCY = 1.0
 # Enable and configure HTTP caching (disabled by default)
 # See https://docs.scrapy.org/en/latest/topics/downloader-middleware.html#httpcache-middleware-settings
 #HTTPCACHE_ENABLED = True
@@ -86,8 +92,8 @@ DOWNLOAD_DELAY = 1
 # Set settings whose default value is deprecated to a future-proof value
 FEED_EXPORT_ENCODING = "utf-8"
 LOG_LEVEL = "ERROR"
-ITEM_PIPELINES = {
-    'scrapy.pipelines.files.FilesPipeline': 1,
-}
-
 FILES_STORE = 'CSVs'
+
+RETRY_ENABLED = True
+RETRY_TIMES = 5
+RETRY_HTTP_CODES = [429, 500, 502, 503, 504]

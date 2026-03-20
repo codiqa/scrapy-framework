@@ -3,6 +3,8 @@ import pandas as pd
 from bs4 import BeautifulSoup
 import xml.etree.ElementTree as ET
 from pathlib import Path
+import re
+from firstscrapy.items import FirstscrapyItem
 
 class EINSpider(scrapy.Spider):
     name = "ein_spider"
@@ -34,8 +36,10 @@ class EINSpider(scrapy.Spider):
     def parse(self, response):
         csv_links = response.css("a[href*='.csv']::attr(href)").getall()
 
-        for link in csv_links:
-            yield scrapy.Request(url=link, callback=self.parse_csv)
+        for link in csv_links:            
+            match = re.match(r".*eo\d.csv$", link)
+            if match:
+                yield scrapy.Request(url=link, callback=self.parse_csv)
 
     # -------------------------
     # STEP 2: Parse CSV
@@ -56,19 +60,20 @@ class EINSpider(scrapy.Spider):
         )
 
         for _,row in df.iterrows():           
-            ein = row["EIN"]
-            self.csv_data[ein] = row.to_dict()  # store row for later merge 
+            ein = row["EIN"]            
+            csvdata= row.to_dict()
+            
             url = f"https://projects.propublica.org/nonprofits/organizations/{ein}"
 
             yield scrapy.Request(
                 url=url,
                 callback=self.parse_ein,
-                meta={"ein": ein}
+                meta={"ein": ein, csvdata:csvdata}
             )
 
     # -------------------------
     # STEP 3: Find XML link
-    # -------------------------
+    # -------------------------    
     def parse_ein(self, response):
         soup = BeautifulSoup(response.text, "html.parser")
 
@@ -77,13 +82,11 @@ class EINSpider(scrapy.Spider):
             return
 
         xml_url = f"https://projects.propublica.org/{tag.get('href')}"
-
-        print( xml_url )
-        self.logger.error(f"{xml_url}")
+        
         yield scrapy.Request(
             url=xml_url,
-            callback=self.parse_xml,
-            meta={"ein": response.meta["ein"]}
+            callback=self.parse_xml,            
+            meta={"ein": response.meta["ein"],"csvdata": response.meta["csvdata"]}
         )
 
     # -------------------------
@@ -107,7 +110,12 @@ class EINSpider(scrapy.Spider):
         # -------------------------
         # Merge CSV row with XML data
         # -------------------------
-        csv_row = self.csv_data.get(data["ein"], {})  # get CSV row by EIN
-        merged = {**csv_row, **data}      # merge dictionaries
+        csvdata = response.meta["csvdata"]
+        item = FirstscrapyItem()
 
-        yield merged  # Scrapy will output merged data
+        merged_data = {**csvdata, **data}
+
+        for k, v in merged_data.items():
+            item[k] = v
+
+        yield item  # Scrapy will output merged data
