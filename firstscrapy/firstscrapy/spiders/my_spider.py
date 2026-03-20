@@ -37,7 +37,7 @@ class EINSpider(scrapy.Spider):
         csv_links = response.css("a[href*='.csv']::attr(href)").getall()
 
         for link in csv_links:            
-            match = re.match(r".*eo\d.csv$", link)
+            match = re.match(r".*eo\d.csv$", link)            
             if match:
                 yield scrapy.Request(url=link, callback=self.parse_csv)
 
@@ -59,29 +59,27 @@ class EINSpider(scrapy.Spider):
             encoding="latin-1"
         )
 
-        for _,row in df.iterrows():           
+        for row in df.to_dict("records"):           
             ein = row["EIN"]            
-            csvdata= row.to_dict()
+            csvdata= row
             
             url = f"https://projects.propublica.org/nonprofits/organizations/{ein}"
 
             yield scrapy.Request(
                 url=url,
                 callback=self.parse_ein,
-                meta={"ein": ein, csvdata:csvdata}
+                meta={"ein": ein, "csvdata":csvdata}
             )
 
     # -------------------------
     # STEP 3: Find XML link
     # -------------------------    
     def parse_ein(self, response):
-        soup = BeautifulSoup(response.text, "html.parser")
-
-        tag = soup.find("a", string="XML")
+        tag = response.xpath("//a[text()='XML']/@href").get()
         if not tag:
             return
 
-        xml_url = f"https://projects.propublica.org/{tag.get('href')}"
+        xml_url = f"https://projects.propublica.org{tag}"
         
         yield scrapy.Request(
             url=xml_url,
@@ -111,7 +109,7 @@ class EINSpider(scrapy.Spider):
         # Merge CSV row with XML data
         # -------------------------
         csvdata = response.meta["csvdata"]
-        item = FirstscrapyItem()
+        item = {}
 
         merged_data = {**csvdata, **data}
 
