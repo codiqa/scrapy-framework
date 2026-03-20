@@ -19,13 +19,36 @@ class EINSpider(scrapy.Spider):
         super().__init__(*args, **kwargs)
         self.csv_data = {}  # key = EIN, value = CSV row as dict
     
+    def handle_error(self, failure):
+        import pdb; pdb.set_trace()
+    
     def start_requests(self):
-        # Create folder if it doesn't exist
-        Path("CSVs").mkdir(parents=True, exist_ok=True)
+        # xml_url = f"https://projects.propublica.org/{tag.get('href')}"
+        xml_url = 'https://projects.propublica.org/nonprofits/download-xml?object_id=202513449349301371'
 
-        # Start your requests
-        url = "https://www.irs.gov/charities-non-profits/exempt-organizations-business-master-file-extract-eo-bmf"
-        yield scrapy.Request(url=url, callback=self.parse)
+        print( xml_url )
+        
+        try:
+            yield scrapy.Request(
+                url=xml_url,
+                callback=self.parse_xml,
+                errback=self.handle_error,
+                meta={"ein": '981644897'},
+                dont_filter=True,
+                headers={
+                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+                    "Accept": "application/xml,text/html;q=0.9,*/*;q=0.8",
+                }
+            )
+        except Exception as e:
+            import pdb; pdb.set_trace()
+        
+        # # Create folder if it doesn't exist
+        # Path("CSVs").mkdir(parents=True, exist_ok=True)
+
+        # # Start your requests
+        # url = "https://www.irs.gov/charities-non-profits/exempt-organizations-business-master-file-extract-eo-bmf"
+        # yield scrapy.Request(url=url, callback=self.parse)
     
 
     # -------------------------
